@@ -1,16 +1,27 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import axios from "axios";
 import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/sign-up/required-details"]);
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    await auth.protect({ token: "any" });
-    const userId = (await auth()).userId;
-    const isExist = await (
-      await fetch(
-        `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/user/is-exist?clerkId=${userId}`
-      )
-    ).json();
+    const { sessionId } = await auth();
+
+    if (!sessionId) {
+      NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+
+    let isExist = null;
+
+    if (sessionId) {
+      isExist = (
+        await axios.get(
+          `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/user/is-exist?sessionId=${sessionId}`
+        )
+      ).data;
+    }
+
+    console.log("Middleware calling");
 
     if (!isExist?.isExist) {
       NextResponse.redirect(new URL("/sign-up/required-details", req.url));

@@ -1,4 +1,4 @@
-import { db, pool } from "../db";
+import { db } from "../db";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { createToken } from "../utils/jwt";
@@ -6,6 +6,7 @@ import { s3ImageUpload } from "../utils/handle-image";
 import { sendPasswordResetMail } from "../utils/aws-ses";
 import { usersTable } from "../db/schema";
 import { eq, or } from "drizzle-orm";
+import { clerkClient, getAuth } from "@clerk/express";
 
 export async function signupUser(req: Request, res: Response) {
   try {
@@ -29,14 +30,17 @@ export async function signupUser(req: Request, res: Response) {
     }
 
     const isUserExist = await db
-      .select()
+      .select({
+        id: usersTable.id,
+      })
       .from(usersTable)
       .where(
         or(
           eq(usersTable.username, username),
           eq(usersTable.email, String(email))
         )
-      );
+      )
+      .limit(1);
 
     if (isUserExist.length) {
       res.status(401);
@@ -100,187 +104,187 @@ export async function signupUser(req: Request, res: Response) {
   }
 }
 
-export async function loginUser(req: Request, res: Response) {
-  try {
-    const {
-      username,
-      password,
-    }: { username: string | undefined; password: string | undefined } =
-      req.body;
+// export async function loginUser(req: Request, res: Response) {
+//   try {
+//     const {
+//       username,
+//       password,
+//     }: { username: string | undefined; password: string | undefined } =
+//       req.body;
 
-    if (!username || !password) {
-      res.status(400);
-      return res.json({
-        msg: "User created successfully",
-      });
-    }
+//     if (!username || !password) {
+//       res.status(400);
+//       return res.json({
+//         msg: "User created successfully",
+//       });
+//     }
 
-    const isUserExist = await pool.query(
-      `SELECT * FROM users WHERE username=$1`,
-      [username]
-    );
+//     const isUserExist = await pool.query(
+//       `SELECT * FROM users WHERE username=$1`,
+//       [username]
+//     );
 
-    if (!isUserExist.rowCount) {
-      res.status(400);
-      return res.json({
-        msg: "User not found",
-      });
-    }
+//     if (!isUserExist.rowCount) {
+//       res.status(400);
+//       return res.json({
+//         msg: "User not found",
+//       });
+//     }
 
-    const isUserValid = await bcrypt.compare(
-      password,
-      isUserExist.rows[0].password
-    );
+//     const isUserValid = await bcrypt.compare(
+//       password,
+//       isUserExist.rows[0].password
+//     );
 
-    if (!isUserValid) {
-      res.status(400);
-      return res.json({
-        msg: "User is not valid",
-      });
-    }
+//     if (!isUserValid) {
+//       res.status(400);
+//       return res.json({
+//         msg: "User is not valid",
+//       });
+//     }
 
-    const accessToken = createToken(
-      isUserExist.rows[0].id,
-      isUserExist.rows[0].username
-    );
+//     const accessToken = createToken(
+//       isUserExist.rows[0].id,
+//       isUserExist.rows[0].username
+//     );
 
-    return res
-      .status(200)
-      .cookie("user-auth", accessToken, {
-        secure: true,
-      })
-      .json({
-        msg: "User login successfully",
-      });
-  } catch (err) {
-    res.status(500);
-    console.log(err);
-    return res.json({
-      msg: "Some thing went wrong",
-      error: err,
-    });
-  }
-}
+//     return res
+//       .status(200)
+//       .cookie("user-auth", accessToken, {
+//         secure: true,
+//       })
+//       .json({
+//         msg: "User login successfully",
+//       });
+//   } catch (err) {
+//     res.status(500);
+//     console.log(err);
+//     return res.json({
+//       msg: "Some thing went wrong",
+//       error: err,
+//     });
+//   }
+// }
 
-export async function logoutUser(req: Request, res: Response) {
-  try {
-    return res.status(200).clearCookie("user-auth").json({
-      msg: "User logout successfully",
-    });
-  } catch (err) {
-    res.status(500);
-    console.log(err);
-    return res.json({
-      msg: "Some thing went wrong",
-      error: err,
-    });
-  }
-}
+// export async function logoutUser(req: Request, res: Response) {
+//   try {
+//     return res.status(200).clearCookie("user-auth").json({
+//       msg: "User logout successfully",
+//     });
+//   } catch (err) {
+//     res.status(500);
+//     console.log(err);
+//     return res.json({
+//       msg: "Some thing went wrong",
+//       error: err,
+//     });
+//   }
+// }
 
-export async function forgotPassword(req: Request, res: Response) {
-  try {
-    const { username } = req.body;
+// export async function forgotPassword(req: Request, res: Response) {
+//   try {
+//     const { username } = req.body;
 
-    if (!username) {
-      res.status(400);
-      return res.json({
-        msg: "Username is required",
-      });
-    }
+//     if (!username) {
+//       res.status(400);
+//       return res.json({
+//         msg: "Username is required",
+//       });
+//     }
 
-    const isUserExist = await pool.query(
-      `SELECT * FROM users WHERE username = $1`,
-      [username]
-    );
+//     const isUserExist = await pool.query(
+//       `SELECT * FROM users WHERE username = $1`,
+//       [username]
+//     );
 
-    if (!isUserExist.rows[0]) {
-      res.status(400);
-      return res.json({
-        msg: "User not found",
-      });
-    }
+//     if (!isUserExist.rows[0]) {
+//       res.status(400);
+//       return res.json({
+//         msg: "User not found",
+//       });
+//     }
 
-    // const resetToken = createToken(
-    //   isUserExist.rows[0].id,
-    //   isUserExist.rows[0].username
-    // );
+//     // const resetToken = createToken(
+//     //   isUserExist.rows[0].id,
+//     //   isUserExist.rows[0].username
+//     // );
 
-    const isMailSend = await sendPasswordResetMail(
-      "abhradipserampore@gmail.com",
-      "123"
-    );
-    console.log(isMailSend);
+//     const isMailSend = await sendPasswordResetMail(
+//       "abhradipserampore@gmail.com",
+//       "123"
+//     );
+//     console.log(isMailSend);
 
-    res.status(200);
-    return res.json({
-      msg: "Reset password email sent",
-    });
-  } catch (err) {
-    res.status(500);
-    console.log(err);
-    return res.json({
-      msg: "Some thing went wrong",
-      error: err,
-    });
-  }
-}
+//     res.status(200);
+//     return res.json({
+//       msg: "Reset password email sent",
+//     });
+//   } catch (err) {
+//     res.status(500);
+//     console.log(err);
+//     return res.json({
+//       msg: "Some thing went wrong",
+//       error: err,
+//     });
+//   }
+// }
 
-export async function validateEmailCode(req: Request, res: Response) {
-  try {
-    const { emailCode, resetPassword } = req.body;
-    const { id } = req.params;
+// export async function validateEmailCode(req: Request, res: Response) {
+//   try {
+//     const { emailCode, resetPassword } = req.body;
+//     const { id } = req.params;
 
-    if (!emailCode) {
-      res.status(400);
-      return res.json({
-        msg: "Email code is required",
-      });
-    }
+//     if (!emailCode) {
+//       res.status(400);
+//       return res.json({
+//         msg: "Email code is required",
+//       });
+//     }
 
-    if (!resetPassword) {
-      return res.status(400).json({
-        msg: "Reset password is required",
-      });
-    }
+//     if (!resetPassword) {
+//       return res.status(400).json({
+//         msg: "Reset password is required",
+//       });
+//     }
 
-    if (!id) {
-      return res.status(400).json({
-        msg: "User ID is required",
-      });
-    }
+//     if (!id) {
+//       return res.status(400).json({
+//         msg: "User ID is required",
+//       });
+//     }
 
-    const isUserAndCodeExist = await pool.query(
-      `SELECT * FROM users WHERE id = $1 AND email_code = $2`,
-      [id, emailCode]
-    );
+//     const isUserAndCodeExist = await pool.query(
+//       `SELECT * FROM users WHERE id = $1 AND email_code = $2`,
+//       [id, emailCode]
+//     );
 
-    if (!isUserAndCodeExist.rowCount) {
-      return res.status(404).json({
-        msg: "User not found",
-      });
-    }
+//     if (!isUserAndCodeExist.rowCount) {
+//       return res.status(404).json({
+//         msg: "User not found",
+//       });
+//     }
 
-    const encryptedPassword = await bcrypt.hash(resetPassword, 10);
+//     const encryptedPassword = await bcrypt.hash(resetPassword, 10);
 
-    const isUserUpdated = await pool.query(
-      `UPDATE users SET password = $1, email_code = NULL WHERE id = $2`,
-      [encryptedPassword, id]
-    );
+//     const isUserUpdated = await pool.query(
+//       `UPDATE users SET password = $1, email_code = NULL WHERE id = $2`,
+//       [encryptedPassword, id]
+//     );
 
-    if (!isUserUpdated.rowCount) {
-      return res.status(400).json({
-        msg: "User not updated",
-      });
-    }
+//     if (!isUserUpdated.rowCount) {
+//       return res.status(400).json({
+//         msg: "User not updated",
+//       });
+//     }
 
-    return res.status(200).json({
-      msg: "Code validated successfully",
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      msg: "Some thing went wrong",
-      error: err,
-    });
-  }
-}
+//     return res.status(200).json({
+//       msg: "Code validated successfully",
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     return res.status(500).json({
+//       msg: "Some thing went wrong",
+//       error: err,
+//     });
+//   }
+// }

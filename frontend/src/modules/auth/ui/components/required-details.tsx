@@ -14,11 +14,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
 import { useEffect } from "react";
+import axios, { AxiosError } from "axios";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -43,26 +44,26 @@ function RequiredDetails() {
 
   const mutation = useMutation({
     mutationFn: async (body: z.infer<typeof formSchema>) => {
-      const response = await fetch(
+      const response = await axios.post(
         `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`,
+        body,
         {
-          body: JSON.stringify(body),
           headers: {
             "Content-Type": "application/json",
           },
-          method: "POST",
         }
       );
-      return await response.json();
+      return response.data;
     },
     onSuccess: () => {
       // Invalidate and refetch
       // QueryClient.invalidateQueries({ queryKey: ['todos'] })
       toast("Form successfully submitted");
     },
-    onError: (err) => {
+    onError: (err: AxiosError) => {
       console.log(err);
-      toast(err.message);
+      const msg = err?.response?.data as { msg: string };
+      toast(msg.msg);
     },
   });
 

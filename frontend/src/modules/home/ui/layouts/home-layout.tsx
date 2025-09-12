@@ -13,7 +13,7 @@ function HomeLayout({ children }: LayoutInterface) {
         <HomeNavbar />
         <div className="flex min-h-screen pt-[4rem]">
           <HomeSidebar />
-          <main className="flex overflow-y-auto">{children}</main>
+          <main className="flex overflow-y-auto w-full">{children}</main>
         </div>
       </div>
     </SidebarProvider>
