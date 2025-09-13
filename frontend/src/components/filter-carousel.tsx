@@ -42,6 +42,8 @@ function FilterCarousel({
     });
   }, [api]);
 
+  console.log(value);
+
   return (
     <div className="relative w-full">
       <div
@@ -60,9 +62,12 @@ function FilterCarousel({
       >
         <CarouselContent className="-ml-2">
           {!isLoading && (
-            <CarouselItem className="pl-3 basis-auto">
+            <CarouselItem
+              onClick={() => onSelect?.(null)}
+              className="pl-3 basis-auto"
+            >
               <Badge
-                variant={value === null ? "default" : "secondary"}
+                variant={!value ? "default" : "secondary"}
                 className="rounded-lg px-3 py-1 cursor-pointer whitespace-nowrap text-sm"
               >
                 All
@@ -79,10 +84,14 @@ function FilterCarousel({
               </CarouselItem>
             ))}
           {!isLoading &&
-            data?.map(({ label, value }) => (
-              <CarouselItem key={value} className="basis-auto">
+            data?.map(({ label, value: v }) => (
+              <CarouselItem
+                key={v}
+                className="basis-auto"
+                onClick={() => onSelect?.(v)}
+              >
                 <Badge
-                  variant={value === null ? "default" : "secondary"}
+                  variant={value === v ? "default" : "secondary"}
                   className="rounded-lg px-3 py-1 cursor-pointer whitespace-nowrap text-sm"
                 >
                   {label}

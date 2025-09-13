@@ -3,6 +3,7 @@
 import FilterCarousel from "@/components/filter-carousel";
 import { useQuery } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
 
 interface CategoriesSectionProps {
   categoryId?: string;
@@ -14,6 +15,7 @@ interface CategoryResponse {
 }
 
 function CategoriesSection({ categoryId }: CategoriesSectionProps) {
+  const router = useRouter();
   const fetchCategories = async (): Promise<CategoryResponse[]> => {
     const data = (
       await axios.get(
@@ -37,11 +39,22 @@ function CategoriesSection({ categoryId }: CategoriesSectionProps) {
     }));
   }
 
+  const onSelect = (value: string | null) => {
+    const url = new URL(window.location.href);
+    if (value) {
+      url.searchParams.set("categoryId", value);
+    } else {
+      url.searchParams.delete("categoryId");
+    }
+    router.push(url.toString());
+  };
+
   return (
     <FilterCarousel
       value={categoryId}
       data={categories || []}
       isLoading={isLoading}
+      onSelect={onSelect}
     />
   );
 }

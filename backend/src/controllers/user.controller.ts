@@ -7,6 +7,7 @@ import { getS3SignedUrl } from "../utils/aws-s3";
 import { usersTable } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
+import { verifyUserSessionDDB } from "../utils/handle-session";
 
 export async function isUserExist(req: Request, res: Response) {
   try {
@@ -18,34 +19,17 @@ export async function isUserExist(req: Request, res: Response) {
       });
     }
 
-    const test = await clerkClient.sessions.getSession(String(sessionId));
-    const clerkId = test.userId;
+    const verifySession = await verifyUserSessionDDB(String(sessionId));
 
-    const [isExist] = await db
-      .select({
-        id: usersTable.id,
-        avatar_url: usersTable.avatarUrl,
-      })
-      .from(usersTable)
-      .where(eq(usersTable.clerkId, String(clerkId)))
-      .limit(1);
-
-    if (!isExist?.id) {
+    if (!verifySession?.Item?.clerk_id) {
       return res.status(404).json({
+        isExist: verifySession?.Item?.clerk_id || false,
         msg: "User does not Exist",
       });
     }
 
-    // if (isExist.length && user?.imageUrl != isExist[0]?.avatar_url) {
-    //   console.log("Database updating");
-    //   await db
-    //     .update(usersTable)
-    //     .set({ updatedAt: sql`NOW()`, avatarUrl: user.imageUrl })
-    //     .where(eq(usersTable.clerkId, String(clerkId)));
-    // }
-
     return res.status(200).json({
-      isExist: isExist?.id,
+      isExist: verifySession?.Item?.clerk_id || true,
       msg: "User Exists",
     });
   } catch (err) {

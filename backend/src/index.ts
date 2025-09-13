@@ -7,7 +7,8 @@ import cookieParser from "cookie-parser";
 import { router as userRouter } from "./routes/user.route";
 import { router as authRouter } from "./routes/auth.route";
 import { router as categoryRouter } from "./routes/category.route";
-// import { router as videoRouter } from "./routes/video.route";
+import { router as clerkRouter } from "./routes/clerk.route";
+import { router as videoRouter } from "./routes/video.route";
 // import { router as commentRouter } from "./routes/comment.route";
 // import { router as likeRouter } from "./routes/like.route";
 // import { router as subscribeRouter } from "./routes/subscribe.route";
@@ -25,8 +26,9 @@ app.use(cookieParser());
 app.use("/user", userRouter);
 app.use("/auth", authRouter);
 app.use("/api/v1/category", categoryRouter);
+app.use("/api/v1/clerk", clerkRouter);
+app.use("/api/v1/video", videoRouter);
 // app.use("/user/subscribe", subscribeRouter);
-// app.use("/video", videoRouter);
 // app.use("/comment", commentRouter);
 // app.use("/like", likeRouter);
 app.use(clerkMiddleware());
@@ -63,3 +65,5 @@ app.delete("/redis", async (req, res) => {
 app.listen(PORT, () => {
   console.log("Server connected successfully on port no", PORT);
 });
+
+// ngrok http --url=teri-presufficient-collin.ngrok-free.app 8000

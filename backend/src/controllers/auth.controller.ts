@@ -29,25 +29,25 @@ export async function signupUser(req: Request, res: Response) {
       });
     }
 
-    const isUserExist = await db
-      .select({
-        id: usersTable.id,
-      })
-      .from(usersTable)
-      .where(
-        or(
-          eq(usersTable.username, username),
-          eq(usersTable.email, String(email))
-        )
-      )
-      .limit(1);
+    // const isUserExist = await db
+    //   .select({
+    //     id: usersTable.id,
+    //   })
+    //   .from(usersTable)
+    //   .where(
+    //     or(
+    //       eq(usersTable.username, username),
+    //       eq(usersTable.email, String(email))
+    //     )
+    //   )
+    //   .limit(1);
 
-    if (isUserExist.length) {
-      res.status(401);
-      return res.json({
-        msg: "Duplicate records exist",
-      });
-    }
+    // if (isUserExist.length) {
+    //   res.status(401);
+    //   return res.json({
+    //     msg: "Duplicate records exist",
+    //   });
+    // }
 
     // const encryptedPassword = await bcrypt.hash(password, 10);
     // let avatar_url = "";
@@ -81,16 +81,16 @@ export async function signupUser(req: Request, res: Response) {
     //   }
     // }
 
-    const isUserCreated = await db
-      .insert(usersTable)
-      .values({ name, username, clerkId, email });
+    // const isUserCreated = await db
+    //   .insert(usersTable)
+    //   .values({ name, username, clerkId, email });
 
-    if (!isUserCreated?.rowCount) {
-      res.status(404);
-      return res.json({
-        msg: "User creation failed",
-      });
-    }
+    // if (!isUserCreated?.rowCount) {
+    //   res.status(404);
+    //   return res.json({
+    //     msg: "User creation failed",
+    //   });
+    // }
 
     return res.status(201).json({
       msg: "User created successfully",

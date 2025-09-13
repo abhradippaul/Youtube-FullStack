@@ -1,20 +1,22 @@
-// import {
-//   getVideo,
-//   getVideoComments,
-//   getVideoHistory,
-//   getVideoInteraction,
-//   getVideoNumbers,
-//   getVideos,
-//   updateThumbnail,
-//   updateVideoInfo,
-//   uploadThumbnail,
-//   uploadVideo,
-// } from "../controllers/video.controller";
-// import express from "express";
+import { verifySession } from "../middlewares/user.middleware";
+import {
+  //   getVideo,
+  //   getVideoComments,
+  //   getVideoHistory,
+  //   getVideoInteraction,
+  //   getVideoNumbers,
+  //   getVideos,
+  //   updateThumbnail,
+  //   updateVideoInfo,
+  //   uploadThumbnail,
+  //   uploadVideo,
+  getUserVideos,
+} from "../controllers/video.controller";
+import express from "express";
 // import { verifyUserToken } from "../middlewares/user.middleware";
 // import { uploadImage, videoUpload } from "../utils/multer";
 
-// const router = express.Router();
+const router = express.Router();
 
 // router
 //   .route("/")
@@ -42,4 +44,6 @@
 //   .route("/:videoId/video-interact")
 //   .get(verifyUserToken, getVideoInteraction);
 
-// export { router };
+router.route("/studio/videos").get(verifySession, getUserVideos);
+
+export { router };

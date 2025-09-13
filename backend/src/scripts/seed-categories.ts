@@ -1,7 +1,7 @@
 import { categories } from "../db/schema";
 import { db } from "../db/index";
 
-const categoryNames = [
+export const categoryNames = [
   "Cars and vehicles",
   "Comedy",
   "Education",

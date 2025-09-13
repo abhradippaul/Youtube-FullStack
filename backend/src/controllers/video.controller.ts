@@ -1,6 +1,8 @@
 // import fs from "fs";
-// import { pool } from "../db";
-// import { Request, Response } from "express";
+import { usersTable, videos } from "../db/schema";
+import { db } from "../db";
+import { Request, Response } from "express";
+import { desc, eq } from "drizzle-orm";
 // import {
 //   createVideoDDB,
 //   getVideoDDB,
@@ -14,6 +16,43 @@
 // import { getS3SignedUrl } from "../utils/aws-s3";
 // // import { createRedisKey, deleteRedisKey, getRedisKey } from "../utils/redis";
 // import { getUserDDB } from "../utils/aws-ddb";
+
+export async function getUserVideos(req: Request, res: Response) {
+  try {
+    const { page = 0, limit = 5 } = req.query;
+    const { clerkId } = req.body;
+
+    if (!clerkId) {
+      return res.status(401).json({
+        msg: "id is missing",
+      });
+    }
+
+    const OFFSET = Number(page) * Number(limit);
+
+    const data = await db
+      .select()
+      .from(usersTable)
+      .innerJoin(videos, eq(usersTable.id, videos.userId))
+      .where(eq(usersTable.clerkId, clerkId))
+      .orderBy(desc(videos.createdAt))
+      .offset(OFFSET)
+      .limit(Number(limit) + 1);
+
+    const hasMore = data.length > Number(limit);
+    const items = data.length && hasMore ? data.slice(0, -1) : data;
+
+    console.log(items);
+
+    return res.status(200).json({
+      hasMore,
+      msg: "Videos found successfully",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: "Something went wrong", error: err });
+  }
+}
 
 // export async function uploadVideo(req: Request, res: Response) {
 //   try {

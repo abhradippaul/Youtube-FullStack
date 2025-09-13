@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { validateToken } from "../utils/jwt";
+import { verifyUserSessionDDB } from "../utils/handle-session";
 
 export async function verifyUserToken(
   req: Request,
@@ -29,5 +30,30 @@ export async function verifyUserToken(
   }
 
   req.body = { ...req.body, id, username };
+  next();
+}
+
+export async function verifySession(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { sessionId } = req.query;
+
+  if (!sessionId) {
+    return res.status(401).json({
+      msg: "Session does not exist",
+    });
+  }
+
+  const verifySession = await verifyUserSessionDDB(String(sessionId));
+
+  if (!verifySession?.Item?.clerk_id) {
+    return res.status(404).json({
+      msg: "User does not Exist",
+    });
+  }
+
+  req.body = { ...req.body, clerkId: verifySession?.Item?.clerk_id };
   next();
 }
