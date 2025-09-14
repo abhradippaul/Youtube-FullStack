@@ -1,33 +1,22 @@
-// import { verifySession } from "../middlewares/user.middleware";
-import {
-  //   getVideo,
-  //   getVideoComments,
-  //   getVideoHistory,
-  //   getVideoInteraction,
-  //   getVideoNumbers,
-  //   getVideos,
-  //   updateThumbnail,
-  //   updateVideoInfo,
-  //   uploadThumbnail,
-  uploadVideo,
-} from "../controllers/video.controller";
+import { verifySession } from "../middlewares/user.middleware";
+import { getUserStudioVideos } from "../controllers/studio.controller";
 import express from "express";
 // import { verifyUserToken } from "../middlewares/user.middleware";
-import { uploadImage, videoUpload } from "../utils/multer";
+// import { uploadImage, videoUpload } from "../utils/multer";
 
 const router = express.Router();
 
-router
-  .route("/")
-  //   .get(getVideos)
-  .post(
-    videoUpload.fields([
-      { name: "video", maxCount: 1 },
-      { name: "thumbnail", maxCount: 1 },
-    ]),
-    // verifyUserToken,
-    uploadVideo
-  );
+// router
+//   .route("/")
+//   .get(getVideos)
+//   .post(
+//     videoUpload.fields([
+//       { name: "video", maxCount: 1 },
+//       { name: "thumbnail", maxCount: 1 },
+//     ]),
+//     verifyUserToken,
+//     uploadVideo
+//   );
 
 // router.route("/video-history").get(verifyUserToken, getVideoHistory);
 // router.route("/:videoId").get(verifyUserToken, getVideo);
@@ -42,5 +31,7 @@ router
 // router
 //   .route("/:videoId/video-interact")
 //   .get(verifyUserToken, getVideoInteraction);
+
+router.route("/videos").get(getUserStudioVideos);
 
 export { router };

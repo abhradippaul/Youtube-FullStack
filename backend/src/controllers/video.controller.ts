@@ -1,8 +1,8 @@
 // import fs from "fs";
-import { usersTable, videos } from "../db/schema";
-import { db } from "../db";
+// import { usersTable, videos } from "../db/schema";
+// import { db } from "../db";
 import { Request, Response } from "express";
-import { desc, eq } from "drizzle-orm";
+// import { desc, eq } from "drizzle-orm";
 // import {
 //   createVideoDDB,
 //   getVideoDDB,
@@ -17,112 +17,81 @@ import { desc, eq } from "drizzle-orm";
 // // import { createRedisKey, deleteRedisKey, getRedisKey } from "../utils/redis";
 // import { getUserDDB } from "../utils/aws-ddb";
 
-export async function getUserVideos(req: Request, res: Response) {
+export async function uploadVideo(req: Request, res: Response) {
   try {
-    const { page = 0, limit = 5 } = req.query;
-    const { clerkId } = req.body;
+    const {
+      // id, username,
+      title,
+      description,
+    } = req.body;
 
-    if (!clerkId) {
-      return res.status(401).json({
-        msg: "id is missing",
-      });
+    console.log(req.body);
+
+    // if (!id || !username) {
+    //   return res.status(400).json({ msg: "Missing id or username" });
+    // }
+
+    if (!title || !description) {
+      return res.status(400).json({ msg: "Missing title or description" });
     }
 
-    const OFFSET = Number(page) * Number(limit);
+    //     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    const data = await db
-      .select()
-      .from(usersTable)
-      .innerJoin(videos, eq(usersTable.id, videos.userId))
-      .where(eq(usersTable.clerkId, clerkId))
-      .orderBy(desc(videos.createdAt))
-      .offset(OFFSET)
-      .limit(Number(limit) + 1);
+    //     if (!files.video.length) {
+    //       return res.status(400).json({ msg: "No video file uploaded" });
+    //     }
 
-    const hasMore = data.length > Number(limit);
-    const items = data.length && hasMore ? data.slice(0, -1) : data;
+    //     const isUserExist = await pool.query(
+    //       `SELECT * FROM users WHERE id = $1 AND username = $2`,
+    //       [id, username]
+    //     );
 
-    console.log(items);
+    //     if (!isUserExist.rowCount) {
+    //       return res.status(404).json({ msg: "User not found" });
+    //     }
+
+    //     const videoUrl = `videos/${isUserExist.rows[0].username}/${Date.now()}`;
+
+    //     const isVideoUploaded = await s3VideoUpload(
+    //       files.video[0],
+    //       videoUrl,
+    //       files.video[0].path
+    //     );
+
+    //     if (isVideoUploaded.$metadata.httpStatusCode !== 200) {
+    //       return res
+    //         .status(500)
+    //         .json({ msg: "Error uploading video", error: isVideoUploaded });
+    //     }
+
+    //     const isVideoCreated = await pool.query(
+    //       `INSERT INTO videos (id, owner_id, title, description, video_url, duration) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`,
+    //       [uuidv4(), id, title, description, videoUrl, 123]
+    //     );
+
+    //     if (!isVideoCreated.rowCount) {
+    //       return res
+    //         .status(500)
+    //         .json({ msg: "Error creating video", error: isVideoCreated });
+    //     }
+
+    //     fs.unlink(files.video[0].path, (err) => {
+    //       if (err) {
+    //         console.error("Error deleting video file:", err);
+    //       }
+    //     });
+
+    //     await createVideoDDB(isVideoCreated.rows[0].id);
 
     return res.status(200).json({
-      hasMore,
-      msg: "Videos found successfully",
+      msg: "Video uploaded successfully",
+      //   video: isVideoCreated.rows[0],
     });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ msg: "Something went wrong", error: err });
   }
 }
-
-// export async function uploadVideo(req: Request, res: Response) {
-//   try {
-//     const { id, username, title, description } = req.body;
-
-//     if (!id || !username) {
-//       return res.status(400).json({ msg: "Missing id or username" });
-//     }
-
-//     if (!title || !description) {
-//       return res.status(400).json({ msg: "Missing title or description" });
-//     }
-
-//     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-//     if (!files.video.length) {
-//       return res.status(400).json({ msg: "No video file uploaded" });
-//     }
-
-//     const isUserExist = await pool.query(
-//       `SELECT * FROM users WHERE id = $1 AND username = $2`,
-//       [id, username]
-//     );
-
-//     if (!isUserExist.rowCount) {
-//       return res.status(404).json({ msg: "User not found" });
-//     }
-
-//     const videoUrl = `videos/${isUserExist.rows[0].username}/${Date.now()}`;
-
-//     const isVideoUploaded = await s3VideoUpload(
-//       files.video[0],
-//       videoUrl,
-//       files.video[0].path
-//     );
-
-//     if (isVideoUploaded.$metadata.httpStatusCode !== 200) {
-//       return res
-//         .status(500)
-//         .json({ msg: "Error uploading video", error: isVideoUploaded });
-//     }
-
-//     const isVideoCreated = await pool.query(
-//       `INSERT INTO videos (id, owner_id, title, description, video_url, duration) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`,
-//       [uuidv4(), id, title, description, videoUrl, 123]
-//     );
-
-//     if (!isVideoCreated.rowCount) {
-//       return res
-//         .status(500)
-//         .json({ msg: "Error creating video", error: isVideoCreated });
-//     }
-
-//     fs.unlink(files.video[0].path, (err) => {
-//       if (err) {
-//         console.error("Error deleting video file:", err);
-//       }
-//     });
-
-//     await createVideoDDB(isVideoCreated.rows[0].id);
-
-//     return res.status(200).json({
-//       msg: "Video uploaded successfully",
-//       video: isVideoCreated.rows[0],
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({ msg: "Something went wrong", error: err });
-//   }
-// }
 
 // export async function getVideo(req: Request, res: Response) {
 //   try {
