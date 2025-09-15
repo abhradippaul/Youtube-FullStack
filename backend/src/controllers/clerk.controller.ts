@@ -27,7 +27,16 @@ export async function clerk(req: Request, res: Response) {
             msg: "Fields are required",
           });
         }
-        await createUserSessionDDB(data.id, data.user_id);
+        const user = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.clerkId, data.user_id));
+        if (!user.length) {
+          return res.status(401).json({
+            msg: "User not found",
+          });
+        }
+        await createUserSessionDDB(data.id, data.user_id, user[0].id);
         break;
 
       case "session.ended":

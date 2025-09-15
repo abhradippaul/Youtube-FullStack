@@ -44,7 +44,7 @@ export const categoryRelation = relations(categories, ({ many }) => ({
 
 export const videos = pgTable("videos", {
   id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar({ length: 150 }).unique().notNull(),
+  title: varchar({ length: 150 }).notNull(),
   description: varchar({ length: 255 }),
   userId: uuid("user_id")
     .references(() => usersTable.id, {
@@ -54,6 +54,14 @@ export const videos = pgTable("videos", {
   categoryId: uuid("category").references(() => categories.id, {
     onDelete: "set null",
   }),
+  thumbnailUrl: varchar("thumbnail_url", { length: 255 }),
+  previewUrl: varchar("preview_url", { length: 255 }),
+  muxStatus: varchar("mux_status", { length: 10 }).default("waiting"),
+  muxAssetId: varchar("mux_asset_id", { length: 255 }),
+  muxUploadId: varchar("mux_upload_id", { length: 255 }),
+  muxPlayboackId: varchar("mux_playback_id", { length: 255 }),
+  muxTrackId: varchar("mux_track_id", { length: 255 }),
+  muxTrackStatus: varchar("mux_track_status", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

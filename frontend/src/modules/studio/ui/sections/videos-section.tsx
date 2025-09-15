@@ -13,33 +13,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { getStudioVideos } from "@/lib/api-calls";
+import { useAuth } from "@clerk/nextjs";
+import VideoThumbnail from "@/modules/videos/ui/components/video-thumbnail";
 
 function VideosSection() {
-  const items = Array.from({ length: 100 }).map((_, i) => ({
-    id: i,
-    name: `Item ${i}`,
-  }));
-  type Item = (typeof items)[0];
-
-  const limit = 10;
-
-  async function fetchData({ pageParam }: { pageParam: number }): Promise<{
-    data: { items: Item[]; nextCursor: number | null };
-  }> {
-    console.log("Page param", pageParam);
-    // return new Promise((resolve) => {
-    //   setTimeout(() => {
-    //     resolve({
-    //       data: items.slice(pageParam, pageParam + 15),
-    //       currentPage: pageParam,
-    //       nextPage: pageParam + 15 < items.length ? pageParam + 15 : null,
-    //     });
-    //   }, 1000);
-    // });
-    return await axios.get(
-      `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/studio/videos?pageParam=${pageParam}&limit=${limit}`
-    );
-  }
+  const { sessionId } = useAuth();
 
   const {
     data,
@@ -50,7 +29,7 @@ function VideosSection() {
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ["items"],
-    queryFn: fetchData,
+    queryFn: ({ pageParam }) => getStudioVideos(sessionId!, pageParam, 10),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.data.nextCursor,
   });
@@ -63,17 +42,6 @@ function VideosSection() {
     <div>{error.message}</div>
   ) : (
     <div className="">
-      {/* {data?.pages?.map((page) => {
-        return (
-          <div key={page.data.currentPage} className="flex flex-col gap-2">
-            {page?.data?.items?.map(({ id, name }) => (
-              <div className="p-4 rounded-md bg-gray-500" key={id}>
-                {name}
-              </div>
-            ))}
-          </div>
-        );
-      })} */}
       <div className="border-y">
         <Table>
           <TableHeader>
@@ -92,7 +60,13 @@ function VideosSection() {
               data?.items?.map(({ id, name }) => (
                 <Link href={`/video/studio/${id}`} key={id} legacyBehavior>
                   <TableRow className="cursor-pointer">
-                    <TableCell>{name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-4">
+                        <div className="relative aspect-video w-36 shrink-0">
+                          <VideoThumbnail />
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>Visibility</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Date</TableCell>

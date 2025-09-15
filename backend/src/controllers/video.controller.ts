@@ -1,8 +1,15 @@
 // import fs from "fs";
-// import { usersTable, videos } from "../db/schema";
-// import { db } from "../db";
+import { usersTable, videos } from "../db/schema";
+import { db } from "../db";
 import { Request, Response } from "express";
-// import { desc, eq } from "drizzle-orm";
+import { mux } from "../utils/mux";
+import {
+  createVideoUrlDDB,
+  deleteVideoUploadUrlDDB,
+  getVideoUploadUrlDDB,
+  updateVideoUploadUrlDDB,
+} from "../utils/handle-video-upload";
+import { desc, eq } from "drizzle-orm";
 // import {
 //   createVideoDDB,
 //   getVideoDDB,
@@ -17,24 +24,93 @@ import { Request, Response } from "express";
 // // import { createRedisKey, deleteRedisKey, getRedisKey } from "../utils/redis";
 // import { getUserDDB } from "../utils/aws-ddb";
 
+const SIGNING_SECRET = process.env.MUX_WEBHOOK_SECRET!;
+
+export async function getMuxUploadUrl(req: Request, res: Response) {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ msg: "User id is missing" });
+    }
+
+    let videoUploadInfo;
+
+    const isUploadUrlExists = await getVideoUploadUrlDDB(userId);
+
+    if (isUploadUrlExists.Item?.upload_id) {
+      videoUploadInfo = {
+        upload_url: isUploadUrlExists.Item?.upload_url,
+        upload_id: isUploadUrlExists.Item?.upload_id,
+      };
+      console.log("Fetching from dynamodb");
+    } else {
+      const upload_info = await mux.video.uploads.create({
+        cors_origin: "*",
+        new_asset_settings: {
+          passthrough: userId,
+          playback_policy: ["public"],
+        },
+      });
+
+      if (!upload_info.url || !upload_info.id) {
+        return res.status(500).json({
+          msg: "Video upload url or id not fetched",
+        });
+      }
+
+      videoUploadInfo = {
+        upload_url: upload_info.url,
+        upload_id: upload_info.id,
+      };
+
+      if (Date.now() - isUploadUrlExists.Item?.created_at > 2000) {
+        await updateVideoUploadUrlDDB(userId, upload_info.url);
+      } else {
+        await createVideoUrlDDB(upload_info.id, upload_info.url, userId);
+      }
+    }
+
+    return res.status(200).json({
+      msg: "Video upload url fetched successfully",
+      ...videoUploadInfo,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: "Something went wrong", error: err });
+  }
+}
+
 export async function uploadVideo(req: Request, res: Response) {
   try {
-    const {
-      // id, username,
-      title,
-      description,
-    } = req.body;
+    const { userId, uploadId, title, description } = req.body;
 
-    console.log(req.body);
-
-    // if (!id || !username) {
-    //   return res.status(400).json({ msg: "Missing id or username" });
-    // }
+    if (!userId || !uploadId) {
+      return res.status(400).json({ msg: "User id or upload id is missing" });
+    }
 
     if (!title || !description) {
       return res.status(400).json({ msg: "Missing title or description" });
     }
 
+    const isVideoCreated = await db.insert(videos).values({
+      title,
+      userId,
+      description,
+      muxUploadId: uploadId,
+    });
+
+    if (!isVideoCreated.rowCount) {
+      return res.status(400).json({
+        msg: "Video create unsuccessful",
+      });
+    }
+
+    await deleteVideoUploadUrlDDB(userId);
+
+    return res.status(200).json({
+      msg: "Video uploaded successfully",
+    });
     //     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     //     if (!files.video.length) {
@@ -82,10 +158,86 @@ export async function uploadVideo(req: Request, res: Response) {
     //     });
 
     //     await createVideoDDB(isVideoCreated.rows[0].id);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: "Something went wrong", error: err });
+  }
+}
+
+export async function muxWebhook(req: Request, res: Response) {
+  try {
+    if (!SIGNING_SECRET) {
+      return res.status(500).json({
+        msg: "Mux webhook secret is missing",
+      });
+    }
+    const muxSignature = req.header("mux-signature");
+    if (!muxSignature) {
+      return res.status(401).json({
+        msg: "Mux signature is missing",
+      });
+    }
+
+    const payload = req.body;
+    console.log(payload);
+
+    mux.webhooks.verifySignature(
+      JSON.stringify(payload),
+      {
+        "mux-signature": muxSignature,
+      },
+      SIGNING_SECRET
+    );
+
+    const data = payload.data;
+
+    if (!data) {
+      return res.status(400).json({
+        msg: "Video not found",
+      });
+    }
+
+    switch (payload.type) {
+      case "video.asset.created":
+        console.log(data);
+        await db
+          .update(videos)
+          .set({
+            muxAssetId: data.id,
+            muxStatus: data.status,
+          })
+          .where(eq(videos.muxUploadId, data.upload_id));
+        break;
+
+      case "video.asset.ready":
+        const playbackId = data.playback_ids[0].id;
+        if (!playbackId || !data?.upload_id) {
+          return res.status(500).json({
+            msg: "Playback id or upload id is missing",
+          });
+        }
+        const thumbnailUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg`;
+        const previewUrl = `https://image.mux.com/${playbackId}/animated.gif`;
+
+        await db
+          .update(videos)
+          .set({
+            muxStatus: data.status,
+            thumbnailUrl,
+            previewUrl,
+            muxPlayboackId: playbackId,
+            muxAssetId: data.id,
+          })
+          .where(eq(videos.muxUploadId, data.upload_id));
+
+        break;
+
+      default:
+        break;
+    }
 
     return res.status(200).json({
-      msg: "Video uploaded successfully",
-      //   video: isVideoCreated.rows[0],
+      msg: "Webhook recived",
     });
   } catch (err) {
     console.log(err);

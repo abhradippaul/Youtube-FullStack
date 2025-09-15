@@ -11,13 +11,18 @@ export async function verifyUserSessionDDB(sessionId: string) {
     .promise();
 }
 
-export async function createUserSessionDDB(sessionId: string, clerkId: string) {
+export async function createUserSessionDDB(
+  sessionId: string,
+  clerkId: string,
+  userId: string
+) {
   ddbClient.put(
     {
       TableName: "user_session_info",
       Item: {
         session_id: sessionId,
         clerk_id: clerkId,
+        user_id: userId,
       },
     },
     (err, data) => {

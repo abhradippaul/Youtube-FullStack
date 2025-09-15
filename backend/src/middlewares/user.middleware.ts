@@ -54,6 +54,10 @@ export async function verifySession(
     });
   }
 
-  req.body = { ...req.body, clerkId: verifySession?.Item?.clerk_id };
+  req.body = {
+    ...req.body,
+    clerkId: verifySession?.Item?.clerk_id,
+    userId: verifySession?.Item?.user_id,
+  };
   next();
 }

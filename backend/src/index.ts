@@ -15,6 +15,8 @@ import { router as videoRouter } from "./routes/video.route";
 // import { router as subscribeRouter } from "./routes/subscribe.route";
 // import { flushRedis } from "./utils/redis";
 import { clerkMiddleware } from "@clerk/express";
+import { db } from "./db/index";
+import { videos, usersTable } from "./db/schema";
 // import { main } from "scripts/seed-categories";
 
 const app = express();
@@ -47,15 +49,15 @@ app.get("/", async (req, res) => {
   res.json({ msg: "hello" });
 });
 
-app.delete("/delete-all-user", (req, res) => {
-  // pool.query(`DELETE FROM users`, (err, result) => {
-  //   if (err) {
-  //     console.error("Error deleting users:", err);
-  //     return res.status(500).json({ error: "Internal server error" });
-  //   }
+app.delete("/delete-all-videos", async (req, res) => {
+  await db.delete(videos);
+  return res.status(200).json({ message: "All videos deleted successfully" });
+});
+
+app.delete("/delete-all-users", async (req, res) => {
+  await db.delete(usersTable);
   return res.status(200).json({ message: "All users deleted successfully" });
 });
-// });
 
 app.delete("/redis", async (req, res) => {
   // await flushRedis();
