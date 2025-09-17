@@ -11,25 +11,8 @@ import { verifyUserSessionDDB } from "../utils/handle-session";
 
 export async function isUserExist(req: Request, res: Response) {
   try {
-    const { sessionId } = req.query;
-
-    if (!sessionId) {
-      return res.status(400).json({
-        msg: "Id is missing",
-      });
-    }
-
-    const verifySession = await verifyUserSessionDDB(String(sessionId));
-
-    if (!verifySession?.Item?.clerk_id) {
-      return res.status(404).json({
-        isExist: verifySession?.Item?.clerk_id || false,
-        msg: "User does not Exist",
-      });
-    }
-
     return res.status(200).json({
-      isExist: verifySession?.Item?.clerk_id || true,
+      isExist: true,
       msg: "User Exists",
     });
   } catch (err) {

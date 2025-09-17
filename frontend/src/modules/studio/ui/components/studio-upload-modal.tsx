@@ -9,11 +9,13 @@ import { Loader2Icon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import StudioUploader from "../studio-uploader";
 import VideoUploadForm from "./videoupload-form";
+import { useQueryClient } from "@/providers/get-query-client";
 
 function StudioUploadModal() {
   const [open, setOpen] = useState(false);
   const [isFormUpdated, setIsFormUpdated] = useState(false);
   const { sessionId } = useAuth();
+  const queryClient = useQueryClient();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["upload_url"],
     queryFn: () => getMuxUploadUrl(sessionId!),
@@ -35,6 +37,7 @@ function StudioUploadModal() {
           <StudioUploader
             endpoint={data?.data?.upload_url}
             onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["studio-videos"] });
               setIsFormUpdated(false);
               setOpen(false);
             }}

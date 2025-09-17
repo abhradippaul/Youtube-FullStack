@@ -50,6 +50,16 @@ export async function getMuxUploadUrl(req: Request, res: Response) {
         new_asset_settings: {
           passthrough: userId,
           playback_policy: ["public"],
+          input: [
+            {
+              generated_subtitles: [
+                {
+                  language_code: "en",
+                  name: "English",
+                },
+              ],
+            },
+          ],
         },
       });
 
@@ -216,22 +226,62 @@ export async function muxWebhook(req: Request, res: Response) {
             msg: "Playback id or upload id is missing",
           });
         }
-        const thumbnailUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg`;
-        const previewUrl = `https://image.mux.com/${playbackId}/animated.gif`;
+        const duration = data.duration ? Math.round(data.duration * 1000) : 0;
 
         await db
           .update(videos)
           .set({
             muxStatus: data.status,
-            thumbnailUrl,
-            previewUrl,
-            muxPlayboackId: playbackId,
+            muxPlaybackId: playbackId,
             muxAssetId: data.id,
+            duration,
           })
           .where(eq(videos.muxUploadId, data.upload_id));
 
         break;
 
+      case "video.asset.error":
+        if (!data?.upload_id) {
+          return res.status(500).json({
+            msg: "Upload id is missing",
+          });
+        }
+
+        await db
+          .update(videos)
+          .set({
+            muxStatus: data?.status,
+          })
+          .where(eq(videos.muxUploadId, data.upload_id));
+        break;
+
+      case "video.asset.deleted":
+        if (!data?.upload_id) {
+          return res.status(500).json({
+            msg: "Upload id is missing",
+          });
+        }
+        await db.delete(videos).where(eq(videos.muxUploadId, data.upload_id));
+        break;
+
+      case "video.asset.track.ready":
+        const assetId = data?.asset_id;
+        const trackId = data?.id;
+        const status = data?.status;
+        if (!assetId) {
+          return res.status(500).json({
+            msg: "Asset id is missing",
+          });
+        }
+
+        await db
+          .update(videos)
+          .set({
+            muxTrackId: trackId,
+            muxTrackStatus: status,
+          })
+          .where(eq(videos.muxAssetId, assetId));
+        break;
       default:
         break;
     }

@@ -9,7 +9,7 @@ import {
   //   updateUser,
 } from "../controllers/user.controller";
 import express, { NextFunction, Request, Response } from "express";
-// import { verifyUserToken } from "../middlewares/user.middleware";
+import { verifySession } from "../middlewares/user.middleware";
 // import { uploadImage } from "../utils/multer";
 import { requireAuth } from "@clerk/express";
 
@@ -31,6 +31,6 @@ const router = express.Router();
 
 // router.route("/:userId/total-view").get(verifyUserToken, totalViewCount);
 
-router.route("/is-exist").get(isUserExist);
+router.route("/is-exist").get(verifySession, isUserExist);
 
 export { router };

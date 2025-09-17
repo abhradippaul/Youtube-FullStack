@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 
-export function createToken(id: string, username: string) {
-  return jwt.sign({ id, username }, "123");
+export function createJWTToken({ sessionId }: { sessionId: string }) {
+  return jwt.sign({ sessionId }, "123");
 }
 
-export function validateToken(token: string) {
+export function validateJWTToken(token: string) {
   return jwt.verify(token, "123");
 }

@@ -11,21 +11,21 @@ export default clerkMiddleware(async (auth, req) => {
       NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
-    let isExist = null;
+    // let isExist = null;
 
-    if (sessionId) {
-      isExist = (
-        await axios.get(
-          `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/user/is-exist?sessionId=${sessionId}`
-        )
-      ).data;
-    }
+    //   if (sessionId) {
+    //     isExist = (
+    //       await axios.get(
+    //         `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/user/is-exist?sessionId=${sessionId}`
+    //       )
+    //     ).data;
+    //   }
 
-    console.log("Middleware calling");
+    //   console.log("Middleware calling");
 
-    if (!isExist?.isExist) {
-      NextResponse.redirect(new URL("/sign-up/required-details", req.url));
-    }
+    //   if (!isExist?.isExist) {
+    //     NextResponse.redirect(new URL("/sign-up/required-details", req.url));
+    //   }
   }
 });
 

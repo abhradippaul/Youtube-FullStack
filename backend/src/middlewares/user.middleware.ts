@@ -1,35 +1,28 @@
 import { NextFunction, Request, Response } from "express";
-import { validateToken } from "../utils/jwt";
+import { validateJWTToken } from "../utils/jwt";
 import { verifyUserSessionDDB } from "../utils/handle-session";
 
-export async function verifyUserToken(
+export async function verifyUserJWTToken(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const cookie = req.cookies;
 
-  if (!cookie["user-auth"]) {
-    res.status(404);
-    return res.json({
-      msg: "Cookie not found",
-    });
+  let sessionId;
+
+  if (cookie["backend-cookie"]) {
+    const { sessionId: id } = validateJWTToken(cookie["backend-cookie"]) as {
+      sessionId: string;
+      iat: number;
+    };
+    sessionId = id;
+  } else {
+    const { sessionId: id } = req.query;
+    sessionId = id;
   }
 
-  const { username, id } = validateToken(cookie["user-auth"]) as {
-    id: string;
-    username: string;
-    iat: number;
-  };
-
-  if (!username || !id) {
-    res.status(404);
-    return res.json({
-      msg: "User is unauthenticated",
-    });
-  }
-
-  req.body = { ...req.body, id, username };
+  req.body = { ...req.body, sessionId };
   next();
 }
 
@@ -39,16 +32,17 @@ export async function verifySession(
   next: NextFunction
 ) {
   const { sessionId } = req.query;
+  console.log(sessionId);
 
   if (!sessionId) {
     return res.status(401).json({
-      msg: "Session does not exist",
+      msg: "Session not found",
     });
   }
 
   const verifySession = await verifyUserSessionDDB(String(sessionId));
 
-  if (!verifySession?.Item?.clerk_id) {
+  if (!verifySession?.Item?.clerk_id || !verifySession?.Item?.user_id) {
     return res.status(404).json({
       msg: "User does not Exist",
     });
