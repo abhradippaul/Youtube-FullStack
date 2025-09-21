@@ -1,8 +1,8 @@
 // import { verifySession } from "../middlewares/user.middleware";
 import {
   getMuxUploadUrl,
+  getVideo,
   muxWebhook,
-  //   getVideo,
   //   getVideoComments,
   //   getVideoHistory,
   //   getVideoInteraction,
@@ -21,7 +21,6 @@ const router = express.Router();
 
 router
   .route("/")
-  //   .get(getVideos)
 
   .post(
     videoUpload.fields([
@@ -31,6 +30,8 @@ router
     verifySession,
     uploadVideo
   );
+
+router.route("/:videoId").get(getVideo);
 
 router.route("/mux-uploadurl").get(verifySession, getMuxUploadUrl);
 router.route("/webhook").post(muxWebhook);

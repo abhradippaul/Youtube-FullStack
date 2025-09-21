@@ -10,17 +10,29 @@ import { useState } from "react";
 import StudioUploader from "../studio-uploader";
 import VideoUploadForm from "./videoupload-form";
 import { useQueryClient } from "@/providers/get-query-client";
+import { useRouter } from "next/navigation";
 
 function StudioUploadModal() {
   const [open, setOpen] = useState(false);
+  const [videoId, setVideoId] = useState("");
   const [isFormUpdated, setIsFormUpdated] = useState(false);
   const { sessionId } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["upload_url"],
     queryFn: () => getMuxUploadUrl(sessionId!),
     enabled: false,
   });
+
+  const onSuccess = () => {
+    if (!videoId) return;
+
+    queryClient.invalidateQueries({ queryKey: ["studio-videos"] });
+    setIsFormUpdated(false);
+    setOpen(false);
+    router.push(`/studio/videos/${videoId}`);
+  };
 
   return (
     <>
@@ -36,18 +48,15 @@ function StudioUploadModal() {
         {!isLoading && isFormUpdated && data?.data?.upload_url && (
           <StudioUploader
             endpoint={data?.data?.upload_url}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["studio-videos"] });
-              setIsFormUpdated(false);
-              setOpen(false);
-            }}
+            onSuccess={onSuccess}
           />
         )}
         {data?.data?.upload_id && !isFormUpdated && (
           <VideoUploadForm
             sessionId={sessionId!}
             uploadId={data?.data?.upload_id}
-            onSuccess={() => {
+            onSuccess={(videoId: string) => {
+              setVideoId(videoId);
               setIsFormUpdated(true);
             }}
           />

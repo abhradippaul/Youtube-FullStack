@@ -1,7 +1,6 @@
 import { db } from "../db";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { createToken } from "../utils/jwt";
 import { s3ImageUpload } from "../utils/handle-image";
 import { sendPasswordResetMail } from "../utils/aws-ses";
 import { usersTable } from "../db/schema";

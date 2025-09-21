@@ -133,3 +133,33 @@ export async function updateUserStudioVideo(req: Request, res: Response) {
     return res.status(500).json({ msg: "Something went wrong", error: err });
   }
 }
+
+export async function deleteUserStudioVideo(req: Request, res: Response) {
+  try {
+    const { userId } = req.body;
+    const { videoId } = req.params;
+
+    if (!userId || !videoId) {
+      return res.status(401).json({
+        msg: "User id or video id is missing",
+      });
+    }
+
+    const isVideoDeleted = await db
+      .delete(videos)
+      .where(and(eq(videos.id, videoId), eq(videos.userId, userId)));
+
+    if (!isVideoDeleted.rowCount) {
+      return res.status(400).json({
+        msg: "Video delete Unsuccessful",
+      });
+    }
+
+    return res.status(200).json({
+      msg: "Video delete successfully",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: "Something went wrong", error: err });
+  }
+}

@@ -20,7 +20,7 @@ import { createVideo } from "@/lib/api-calls";
 interface VideoUploadFormProps {
   sessionId: string;
   uploadId: string;
-  onSuccess: () => void;
+  onSuccess: (videoId: string) => void;
 }
 
 const formSchema = z.object({
@@ -48,8 +48,10 @@ function VideoUploadForm({
   const mutation = useMutation({
     mutationFn: (body: z.infer<typeof formSchema>) =>
       createVideo(sessionId, { ...body, uploadId }),
-    onSuccess: () => {
-      onSuccess();
+    onSuccess: (data) => {
+      if (data.data.videoId) {
+        onSuccess(data.data.videoId);
+      }
       toast("Form successfully submitted");
     },
     onError: (err: AxiosError) => {

@@ -9,7 +9,7 @@ import {
   getVideoUploadUrlDDB,
   updateVideoUploadUrlDDB,
 } from "../utils/handle-video-upload";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, getTableColumns } from "drizzle-orm";
 // import {
 //   createVideoDDB,
 //   getVideoDDB,
@@ -103,14 +103,17 @@ export async function uploadVideo(req: Request, res: Response) {
       return res.status(400).json({ msg: "Missing title or description" });
     }
 
-    const isVideoCreated = await db.insert(videos).values({
-      title,
-      userId,
-      description,
-      muxUploadId: uploadId,
-    });
+    const isVideoCreated = await db
+      .insert(videos)
+      .values({
+        title,
+        userId,
+        description,
+        muxUploadId: uploadId,
+      })
+      .returning();
 
-    if (!isVideoCreated.rowCount) {
+    if (!isVideoCreated[0].id) {
       return res.status(400).json({
         msg: "Video create unsuccessful",
       });
@@ -119,6 +122,7 @@ export async function uploadVideo(req: Request, res: Response) {
     await deleteVideoUploadUrlDDB(userId);
 
     return res.status(200).json({
+      videoId: isVideoCreated[0].id,
       msg: "Video uploaded successfully",
     });
     //     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -208,7 +212,7 @@ export async function muxWebhook(req: Request, res: Response) {
     }
 
     switch (payload.type) {
-      case "video.asset.created":
+      case "video.upload.asset_created":
         console.log(data);
         await db
           .update(videos)
@@ -295,164 +299,37 @@ export async function muxWebhook(req: Request, res: Response) {
   }
 }
 
-// export async function getVideo(req: Request, res: Response) {
-//   try {
-//     const { videoId } = req.params;
-//     const { id: userId } = req.body;
+export async function getVideo(req: Request, res: Response) {
+  try {
+    const { videoId } = req.params;
 
-//     if (!videoId || !userId) {
-//       return res.status(400).json({ msg: "Missing video or user id" });
-//     }
+    if (!videoId) {
+      return res.status(400).json({ msg: "Missing video id" });
+    }
 
-//     // let videoInfoStr = await getRedisKey(`video:${videoId}`);
-//     let videoInfoStr = false;
-//     let videoInfo;
+    const videoInfo = await db
+      .select({
+        ...getTableColumns(videos),
+        owner: {
+          ...getTableColumns(usersTable),
+        },
+      })
+      .from(videos)
+      .innerJoin(usersTable, eq(videos.userId, usersTable.id))
+      .where(eq(videos.id, videoId));
 
-//     if (videoInfoStr) {
-//       console.log("Cache hit");
-//       videoInfo = JSON.parse(videoInfoStr);
-//     } else {
-//       const video = await pool.query(
-//         `WITH
-//           latest_view AS (
-//           SELECT *,
-//           EXTRACT(MINUTES FROM AGE(CURRENT_TIMESTAMP, created_at)) AS age_min
-//           FROM views WHERE video_id = $1 AND user_id = $2
-//           ORDER BY created_at DESC LIMIT 1
-//           ),
+    if (!videoInfo.length) {
+    }
 
-//           video_info AS (
-//           SELECT v.views, v.likes, v.comments,
-//           u.total_subs, v.title, v.description,
-//           v.video_url, v.thumbnail, v.created_at,
-//           u.full_name, u.username, u.avatar_url,
-//           u.id AS owner_id,
-//           EXTRACT(MINUTES FROM AGE(CURRENT_TIMESTAMP, v.updated_at)) AS last_updated
-//           FROM videos v JOIN users u ON v.owner_id = u.id
-//           WHERE v.id = $1
-//           )
-
-//           SELECT
-//           l.id AS view_id,
-//           l.age_min AS age_min,
-//           v.views AS video_views,
-//           v.likes AS video_likes,
-//           v.comments AS video_comments,
-//           v.total_subs AS user_totalsubs,
-//           v.title AS video_title,
-//           v.description AS video_description,
-//           v.video_url AS video_url,
-//           v.thumbnail AS video_thumbnail,
-//           v.created_at AS video_createdat,
-//           v.full_name AS user_fullname,
-//           v.username AS username,
-//           v.avatar_url AS user_avatarurl,
-//           v.owner_id AS owner_id,
-//           v.last_updated AS video_last_updated
-//           FROM latest_view l
-//           FULL JOIN video_info v ON true;
-//       `,
-//         [videoId, userId]
-//       );
-
-//       if (!video.rowCount) {
-//         return res.status(404).json({ msg: "Video not found" });
-//       }
-
-//       videoInfo = video.rows[0];
-
-//       // await createRedisKey(`video:${videoId}`, 600, JSON.stringify(videoInfo));
-//     }
-
-//     if (videoInfo?.video_last_updated > 5) {
-//       const data = await updateVideoViewCountDDB(videoId);
-//       const user_info = await getUserDDB(userId);
-
-//       const responseDDB = {
-//         views_count: data?.Attributes?.views,
-//         comments_count: data?.Attributes?.comments,
-//         likes_count: data?.Attributes?.likes,
-//       };
-//       console.log("Executing");
-
-//       await pool.query(
-//         `UPDATE videos
-//             SET views = $1, comments = $2, likes = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-//         [
-//           responseDDB.views_count,
-//           responseDDB.comments_count,
-//           responseDDB.likes_count,
-//           videoId,
-//         ]
-//       );
-
-//       if (
-//         user_info.Item?.subscribers &&
-//         user_info.Item?.subscribers != videoInfo?.user_totalsubs
-//       ) {
-//         await pool.query(`UPDATE users SET total_subs = $2 WHERE id = $1`, [
-//           user_info.Item?.user_id,
-//           user_info.Item?.subscribers,
-//         ]);
-//       }
-//     }
-
-//     if (videoInfo?.age_min > 1) {
-//       const isViewCreated = await pool.query(
-//         `INSERT INTO views(id, user_id, video_id) VALUES($1, $2, $3)`,
-//         [uuidv4(), userId, videoId]
-//       );
-//       if (!isViewCreated.rowCount) {
-//         return res.status(500).json({
-//           msg: "View update unsuccessful",
-//         });
-//       }
-//       await updateVideoViewCountDDB(videoId);
-//     }
-
-//     // const updatedComments = await Promise.all(
-//     //   video.rows[0].comments.map(async (e: any) => ({
-//     //     ...e,
-//     //     avatar_url: await getS3SignedUrl(e.avatar_url),
-//     //   }))
-//     // );
-
-//     // video.rows[0].comments = updatedComments;
-
-//     return res.json({
-//       msg: "Video found successfully",
-//       videoInfo,
-//     });
-
-//     // return res.status(200).json({
-//     //   msg: "Video fetched successfully",
-//     //   video: {
-//     //     ...video.rows[0].videos,
-//     //     thumbnail: `${
-//     //       video.rows[0].videos.thumbnail
-//     //         ? await getS3SignedUrl(video.rows[0].videos.thumbnail)
-//     //         : ""
-//     //     }`,
-//     //     video_url: await getS3SignedUrl(video.rows[0].videos.video_url),
-//     //     cover_url: `${
-//     //       video.rows[0].videos.cover_url
-//     //         ? await getS3SignedUrl(video.rows[0].videos.cover_url)
-//     //         : ""
-//     //     }`,
-//     //     avatar_url: `${
-//     //       video.rows[0].videos.avatar_url
-//     //         ? await getS3SignedUrl(video.rows[0].videos.avatar_url)
-//     //         : ""
-//     //     }`,
-//     //     total_comment: video.rows[0].comments.length,
-//     //     comments: video.rows[0].comments,
-//     //   },
-//     // });
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({ msg: "Something went wrong", err: err });
-//   }
-// }
+    return res.json({
+      msg: "Video found successfully",
+      videoInfo,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: "Something went wrong", err: err });
+  }
+}
 
 // export async function getVideoNumbers(req: Request, res: Response) {
 //   try {

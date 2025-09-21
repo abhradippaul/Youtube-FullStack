@@ -1,21 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+
 import {
+  deleteUserStudioVideo,
   getCategoriesList,
-  getStudioVideo,
   updateUserStudioVideo,
 } from "@/lib/api-calls";
+
 import { useMutation, useQuery } from "@tanstack/react-query";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVerticalIcon, TrashIcon } from "lucide-react";
+
+import { Loader2, MoreVerticalIcon, TrashIcon } from "lucide-react";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+
 import { z } from "zod";
 import {
   Select,
@@ -24,25 +30,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient } from "@/providers/get-query-client";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import VideoStatusSection from "./video-status-section";
 
 const formSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
-  visibility: z.boolean(),
+  visibility: z.string(),
 });
 
 const ExtraSchema = z.object({
@@ -66,11 +75,12 @@ export type StudioVideoResponseSchema = z.infer<typeof ExtraResponse>;
 interface FormSectionProps {
   videoId: string;
   sessionId: string;
-  formData: z.infer<typeof ExtraResponse>;
+  videoInfo: z.infer<typeof ExtraResponse>;
 }
 
-function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
+function FormSection({ videoId, sessionId, videoInfo }: FormSectionProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { data: categoriesList, isLoading: categoryLoading } = useQuery({
     queryKey: ["categoriesList"],
@@ -80,47 +90,58 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
 
   const videoUpdateMutation = useMutation(
     {
-      mutationFn: (variable: {
-        values: z.infer<typeof formSchema>;
-        sessionId: string;
-        videoId: string;
-      }) =>
-        updateUserStudioVideo(
-          variable.sessionId,
-          variable.videoId,
-          variable.values
-        ),
+      mutationFn: (values: z.infer<typeof formSchema>) =>
+        updateUserStudioVideo(sessionId, videoId, values),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["studio-video", videoId] });
-        toast("Video updated successfully");
+        queryClient.invalidateQueries({ queryKey: ["studio-videos"] });
+        toast.success("Video updated successfully");
       },
       onError: (err) => {
         console.log(err);
-        toast("Video update unsuccessful");
+        toast.error("Some thing went wrong");
       },
     },
     queryClient
   );
 
+  const videoDeleteMutation = useMutation({
+    mutationFn: () => deleteUserStudioVideo(sessionId, videoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["studio-videos"] });
+      toast.success("Video deleted successfully");
+      router.replace("/studio");
+    },
+    onError: (err) => {
+      console.log(err);
+      toast.error("Some thing went wrong");
+    },
+  });
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: formData?.title,
-      description: formData?.description,
-      categoryId: formData?.categoryId,
-      visibility: formData?.visibility,
+      title: videoInfo?.title || "",
+      description: videoInfo?.description || "",
+      categoryId: videoInfo?.categoryId || "",
+      visibility: videoInfo?.visibility,
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    // mutation.mutate({
-    //   values,
-    //   sessionId,
-    //   videoId,
-    // });
     console.log(values);
+    if (
+      values.title != videoInfo.title ||
+      values.description != videoInfo.description ||
+      values.categoryId !== videoInfo.categoryId ||
+      values.visibility != values.visibility
+    ) {
+      if (values.title) {
+        videoUpdateMutation.mutate(values);
+      }
+    } else {
+      toast.error("Values are not changed");
+    }
   }
 
   return (
@@ -139,7 +160,19 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
               className="cursor-pointer"
               disabled={videoUpdateMutation.isPending}
             >
+              {videoUpdateMutation.isPending && (
+                <Loader2 className="size-4  animate-spin" />
+              )}
               Save
+            </Button>
+            <Button
+              type="button"
+              className="cursor-pointer"
+              variant="destructive"
+              disabled={videoUpdateMutation.isPending}
+              onClick={() => form.reset()}
+            >
+              Cancel
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -148,8 +181,9 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => videoDeleteMutation.mutate()}>
                   <TrashIcon className="size-4 mr-2" />
+                  Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -167,7 +201,7 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
                     <Input
                       placeholder="Add a title to your video"
                       {...field}
-                      value={field?.value ?? ""}
+                      // value={field?.value ?? ""}
                       disabled={videoUpdateMutation.isPending}
                     />
                   </FormControl>
@@ -209,7 +243,7 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
                         categoryLoading || videoUpdateMutation.isPending
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -228,6 +262,16 @@ function FormSection({ videoId, sessionId, formData }: FormSectionProps) {
               )}
             />
           </div>
+
+          {videoInfo.muxPlaybackId && (
+            <VideoStatusSection
+              muxPlaybackId={videoInfo.muxPlaybackId}
+              muxStatus={videoInfo.muxStatus || "preparing"}
+              muxTrackStatus={videoInfo.muxTrackStatus || "no_subtitles"}
+              videoId={videoInfo.id}
+              control={form.control}
+            />
+          )}
         </div>
       </form>
     </Form>

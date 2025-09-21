@@ -18,14 +18,14 @@ function VideoView({ videoId, sessionId }: VideoViewProps) {
 
   if (isLoading) return <p>Loading....</p>;
 
-  if (!data) return null;
+  if (!data?.data.video[0]) return null;
 
   return (
     <div className="px-4 pt-2.5 max-w-screen w-full">
       <FormSection
         videoId={videoId}
         sessionId={sessionId}
-        formData={data?.data.video[0]}
+        videoInfo={data?.data.video[0]}
       />
     </div>
   );

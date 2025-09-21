@@ -5,3 +5,7 @@ dist
 *.txt
 *.sql
 uploads
+*.md
+nodemon.json
+*.py
+drizzle

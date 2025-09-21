@@ -63,7 +63,7 @@ export const videos = pgTable("videos", {
   }),
   duration: integer("duration").default(0),
   visibility: varchar("visibility", { length: 8 }).default("private"),
-  muxStatus: varchar("mux_status", { length: 10 }).default("waiting"),
+  muxStatus: varchar("mux_status", { length: 15 }).default("waiting"),
   muxAssetId: varchar("mux_asset_id", { length: 50 }),
   muxUploadId: varchar("mux_upload_id", { length: 50 }),
   muxPlaybackId: varchar("mux_playback_id", { length: 255 }),

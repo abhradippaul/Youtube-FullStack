@@ -1,5 +1,6 @@
 import { verifySession } from "../middlewares/user.middleware";
 import {
+  deleteUserStudioVideo,
   getUserStudioVideo,
   getUserStudioVideos,
   updateUserStudioVideo,
@@ -9,7 +10,10 @@ import express from "express";
 const router = express.Router();
 
 router.route("/videos").get(verifySession, getUserStudioVideos);
-router.route("/video/:videoId").get(verifySession, getUserStudioVideo);
-router.route("/video/:videoId").patch(verifySession, updateUserStudioVideo);
+router
+  .route("/video/:videoId")
+  .get(verifySession, getUserStudioVideo)
+  .patch(verifySession, updateUserStudioVideo)
+  .delete(verifySession, deleteUserStudioVideo);
 
 export { router };

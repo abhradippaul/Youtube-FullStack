@@ -105,9 +105,9 @@ export async function getCategoriesList(sessionId: string): Promise<{
 export async function updateUserStudioVideo(
   sessionId: string,
   videoId: string,
-  body: { title: string; categoryId?: string | null; visibility: boolean }
+  body: { title: string; categoryId?: string | null; visibility: string }
 ) {
-  return await axios.post(
+  return await axios.patch(
     `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/studio/video/${videoId}`,
     body,
     {
@@ -115,5 +115,49 @@ export async function updateUserStudioVideo(
         sessionId,
       },
     }
+  );
+}
+
+export async function deleteUserStudioVideo(
+  sessionId: string,
+  videoId: string
+) {
+  return await axios.delete(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/studio/video/${videoId}`,
+    {
+      params: {
+        sessionId,
+      },
+    }
+  );
+}
+
+export interface GetVideoOwnerInfo {
+  id: string;
+  name: string;
+  username: string;
+  avatar_url?: string;
+  clerk_id: string;
+}
+
+export interface GetVideoInfo {
+  id: string;
+  title: string;
+  descriptions: string;
+  muxStatus: string;
+  playbackId?: string | undefined;
+  owner: GetVideoOwnerInfo;
+}
+
+export interface GetVideoResponse {
+  data: {
+    msg: string;
+    videoInfo?: GetVideoInfo[] | undefined;
+  };
+}
+
+export async function getVideo(videoId: string): Promise<GetVideoResponse> {
+  return await axios.get(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/video/${videoId}`
   );
 }
