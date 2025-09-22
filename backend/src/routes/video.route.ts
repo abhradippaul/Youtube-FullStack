@@ -31,10 +31,9 @@ router
     uploadVideo
   );
 
-router.route("/:videoId").get(getVideo);
-
 router.route("/mux-uploadurl").get(verifySession, getMuxUploadUrl);
 router.route("/webhook").post(muxWebhook);
+router.route("/:videoId").get(getVideo);
 
 // router.route("/video-history").get(verifyUserToken, getVideoHistory);
 // router.route("/:videoId").get(verifyUserToken, getVideo);

@@ -8,6 +8,10 @@ interface VideoPlayerProps {
 
 const MUX_IMAGE_URL = process.env.NEXT_PUBLIC_MUX_IMAGE_URL!;
 
+export const VideoPlayerSkeleton = () => {
+  return <div className="aspect-video bg-black rounded-xl"></div>;
+};
+
 function VideoPlayer({ autoPlay, onPlay, playbackId }: VideoPlayerProps) {
   console.log(`${MUX_IMAGE_URL}/${playbackId}/thumbnail.jpg`);
   if (!playbackId) return null;

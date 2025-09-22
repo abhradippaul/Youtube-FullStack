@@ -1,17 +1,27 @@
 "use client";
 
-import { getVideo } from "@/lib/api-calls";
+import { createVideoView, getVideo } from "@/lib/api-calls";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import VideoPlayer from "../components/video-player";
+import VideoPlayer, { VideoPlayerSkeleton } from "../components/video-player";
 import VideoBanner from "../components/video-banner";
-import VideoTopRow from "../components/video-top-row";
+import VideoTopRow, { VideoTopRowSkeleton } from "../components/video-top-row";
 
 interface VideoSectionProps {
   videoId: string;
+  sessionId: string | null;
 }
 
-function VideoSection({ videoId }: VideoSectionProps) {
+export const VideoSectionSkeleton = () => {
+  return (
+    <>
+      <VideoPlayerSkeleton />
+      <VideoTopRowSkeleton />
+    </>
+  );
+};
+
+function VideoSection({ videoId, sessionId }: VideoSectionProps) {
   const {
     data: videoData,
     error: videoError,
@@ -21,6 +31,20 @@ function VideoSection({ videoId }: VideoSectionProps) {
     queryKey: ["video", videoId],
     enabled: Boolean(videoId),
   });
+
+  console.log(sessionId);
+
+  const { refetch: refetchVideoView } = useQuery({
+    queryFn: () => createVideoView(sessionId || "", videoId),
+    queryKey: ["video-view", videoId],
+    enabled: false,
+  });
+
+  const handlePlay = () => {
+    if (sessionId && videoId) {
+      refetchVideoView();
+    }
+  };
 
   const videoInfo = videoData?.data.videoInfo;
 
@@ -40,12 +64,14 @@ function VideoSection({ videoId }: VideoSectionProps) {
       >
         <VideoPlayer
           autoPlay
-          onPlay={() => {}}
-          playbackId={videoInfo[0].playbackId}
+          onPlay={handlePlay}
+          playbackId={videoInfo[0].muxPlaybackId}
         />
       </div>
-      <VideoBanner />
-      {videoData?.data && <VideoTopRow videoInfo={videoInfo[0]} />}
+      <VideoBanner muxStatus={videoInfo[0].muxStatus} />
+      {videoData?.data && (
+        <VideoTopRow videoInfo={videoInfo[0]} sessionId={sessionId} />
+      )}
     </>
   );
 }

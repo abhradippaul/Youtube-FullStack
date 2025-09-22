@@ -32,7 +32,6 @@ export async function verifySession(
   next: NextFunction
 ) {
   const { sessionId } = req.query;
-  console.log(sessionId);
 
   if (!sessionId) {
     return res.status(401).json({

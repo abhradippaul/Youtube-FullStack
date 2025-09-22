@@ -1,18 +1,20 @@
-// import express from "express";
-// import {
-//   createComment,
-//   deleteComment,
-//   updateComment,
-// } from "../controllers/comment.controller";
-// import { verifyUserToken } from "../middlewares/user.middleware";
+import express from "express";
+import {
+  createComment,
+  deleteComment,
+  getComment,
+  updateComment,
+} from "../controllers/comment.controller";
+import { verifySession } from "../middlewares/user.middleware";
 
-// const router = express.Router();
+const router = express.Router();
 
-// router.route("/:id").post(verifyUserToken, createComment);
+router.route("/:videoId").get(getComment);
+router.route("/:videoId").post(verifySession, createComment);
 
-// router
-//   .route("/:videoId")
-//   .patch(verifyUserToken, updateComment)
-//   .delete(verifyUserToken, deleteComment);
+router
+  .route("/:videoId")
+  .patch(verifySession, updateComment)
+  .delete(verifySession, deleteComment);
 
-// export { router };
+export { router };

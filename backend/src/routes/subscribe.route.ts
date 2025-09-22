@@ -1,14 +1,14 @@
-// import express from "express";
-// import { verifyUserToken } from "../middlewares/user.middleware";
-// import {
-//   addToSubscriberList,
-//   removeFromSubscriberList,
-// } from "../controllers/subscribe.controller";
+import express from "express";
+import { verifySession } from "../middlewares/user.middleware";
+import {
+  addToSubscriberList,
+  removeFromSubscriberList,
+} from "../controllers/subscribe.controller";
 
-// const router = express.Router();
+const router = express.Router();
 
-// router.route("/:userId").post(verifyUserToken, addToSubscriberList);
+router.route("/:userId").post(verifySession, addToSubscriberList);
 
-// router.route("/:userId").delete(verifyUserToken, removeFromSubscriberList);
+router.route("/:userId").delete(verifySession, removeFromSubscriberList);
 
-// export { router };
+export { router };

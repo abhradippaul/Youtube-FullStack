@@ -1,5 +1,11 @@
 // import fs from "fs";
-import { usersTable, videos } from "../db/schema";
+import {
+  subscriptions,
+  usersTable,
+  videoReactions,
+  videos,
+  videoViews,
+} from "../db/schema";
 import { db } from "../db";
 import { Request, Response } from "express";
 import { mux } from "../utils/mux";
@@ -9,7 +15,15 @@ import {
   getVideoUploadUrlDDB,
   updateVideoUploadUrlDDB,
 } from "../utils/handle-video-upload";
-import { desc, eq, getTableColumns } from "drizzle-orm";
+import {
+  and,
+  eq,
+  getTableColumns,
+  inArray as drizzleInArray,
+  sql,
+  isNotNull,
+} from "drizzle-orm";
+import { verifyUserSessionDDB } from "../utils/handle-session";
 // import {
 //   createVideoDDB,
 //   getVideoDDB,
@@ -302,23 +316,92 @@ export async function muxWebhook(req: Request, res: Response) {
 export async function getVideo(req: Request, res: Response) {
   try {
     const { videoId } = req.params;
+    const { sessionId } = req.query;
+    let userId = "";
 
     if (!videoId) {
       return res.status(400).json({ msg: "Missing video id" });
     }
 
+    if (sessionId) {
+      const verifySession = await verifyUserSessionDDB(String(sessionId));
+
+      if (!verifySession?.Item?.clerk_id || !verifySession?.Item?.user_id) {
+        return res.status(404).json({
+          msg: "User does not Exist",
+        });
+      }
+
+      userId = verifySession?.Item?.user_id;
+    }
+
+    const inArraySafe = (column: any, values: any) =>
+      Array.isArray(values) && values.length === 0
+        ? sql`false`
+        : drizzleInArray(column, values);
+
+    const viewerReactions = db.$with("viewer_reactions").as(
+      db
+        .select({
+          videoId: videoReactions.videoId,
+          type: videoReactions.type,
+        })
+        .from(videoReactions)
+        .where(inArraySafe(videoReactions.userId, userId ? [userId] : []))
+    );
+
+    const viewerSubscriptions = db.$with("viewer_subscriptions").as(
+      db
+        .select()
+        .from(subscriptions)
+        .where(inArraySafe(subscriptions.viewerId, userId ? [userId] : []))
+    );
+
     const videoInfo = await db
+      .with(viewerReactions, viewerSubscriptions)
       .select({
         ...getTableColumns(videos),
         owner: {
           ...getTableColumns(usersTable),
+          subscriberCount: db.$count(
+            subscriptions,
+            eq(subscriptions.creatorId, usersTable.id)
+          ),
+          isSubscribed: isNotNull(viewerSubscriptions.viewerId).mapWith(
+            Boolean
+          ),
         },
+
+        viewCount: db.$count(videoViews, eq(videos.id, videoViews.videoId)),
+        likeCount: db.$count(
+          videoReactions,
+          and(eq(videos.id, videoId), eq(videoReactions.type, "like"))
+        ),
+        disLikeCount: db.$count(
+          videoReactions,
+          and(eq(videos.id, videoId), eq(videoReactions.type, "dislike"))
+        ),
+        viewerReaction: viewerReactions.type,
       })
       .from(videos)
       .innerJoin(usersTable, eq(videos.userId, usersTable.id))
-      .where(eq(videos.id, videoId));
+      .leftJoin(viewerReactions, eq(viewerReactions.videoId, videos.id))
+      .leftJoin(
+        viewerSubscriptions,
+        eq(viewerSubscriptions.creatorId, usersTable.id)
+      )
+      .where(eq(videos.id, videoId))
+      .groupBy(
+        videos.id,
+        usersTable.id,
+        viewerReactions.type,
+        viewerSubscriptions.viewerId
+      );
 
     if (!videoInfo.length) {
+      return res.status(400).json({
+        msg: "Video not found",
+      });
     }
 
     return res.json({

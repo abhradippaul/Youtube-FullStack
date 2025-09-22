@@ -80,7 +80,13 @@ export async function getUserStudioVideo(req: Request, res: Response) {
 
 export async function updateUserStudioVideo(req: Request, res: Response) {
   try {
-    const { userId, title, description, categoryId, visibility } = req.body;
+    const {
+      userId,
+      title,
+      description,
+      categoryId = null,
+      visibility,
+    } = req.body;
     const { videoId } = req.params;
 
     if (!userId || !videoId) {

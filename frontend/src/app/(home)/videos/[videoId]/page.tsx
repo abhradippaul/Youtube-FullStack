@@ -1,4 +1,5 @@
 import VideoView from "@/modules/videos/ui/components/video-view";
+import { auth } from "@clerk/nextjs/server";
 
 interface PageProps {
   params: Promise<{
@@ -8,7 +9,8 @@ interface PageProps {
 
 async function page({ params }: PageProps) {
   const { videoId } = await params;
-  return <VideoView videoId={videoId} />;
+  const { sessionId } = await auth();
+  return <VideoView videoId={videoId} sessionId={sessionId} />;
 }
 
 export default page;

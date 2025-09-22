@@ -136,17 +136,24 @@ export interface GetVideoOwnerInfo {
   id: string;
   name: string;
   username: string;
-  avatar_url?: string;
-  clerk_id: string;
+  avatarUrl?: string;
+  clerkId: string;
+  subscriberCount: number;
+  isSubscribed: boolean;
 }
 
 export interface GetVideoInfo {
   id: string;
   title: string;
   descriptions: string;
+  viewCount: number;
+  likeCount: number;
+  disLikeCount: number;
+  videoReaction?: string;
   muxStatus: string;
-  playbackId?: string | undefined;
+  muxPlaybackId?: string | undefined;
   owner: GetVideoOwnerInfo;
+  createdAt: string;
 }
 
 export interface GetVideoResponse {
@@ -159,5 +166,62 @@ export interface GetVideoResponse {
 export async function getVideo(videoId: string): Promise<GetVideoResponse> {
   return await axios.get(
     `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/video/${videoId}`
+  );
+}
+
+export async function createVideoView(sessionId: string, videoId: string) {
+  return await axios.get(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/view/${videoId}`,
+    {
+      params: sessionId,
+    }
+  );
+}
+
+export async function toggleLikeVideoReaction(
+  sessionId: string,
+  videoId: string
+) {
+  return await axios.post(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/reaction/like/${videoId}`,
+    "",
+    {
+      params: sessionId,
+    }
+  );
+}
+
+export async function toggleDislikeVideoReaction(
+  sessionId: string,
+  videoId: string
+) {
+  return await axios.post(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/reaction/dislike/${videoId}`,
+    "",
+    {
+      params: sessionId,
+    }
+  );
+}
+
+export async function addToSubscribeList(sessionId: string, userId: string) {
+  return await axios.post(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscription/${userId}`,
+    "",
+    {
+      params: sessionId,
+    }
+  );
+}
+
+export async function removeFromSubscribeList(
+  sessionId: string,
+  userId: string
+) {
+  return await axios.delete(
+    `http://${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscription/${userId}`,
+    {
+      params: sessionId,
+    }
   );
 }

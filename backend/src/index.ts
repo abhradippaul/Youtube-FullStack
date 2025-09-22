@@ -10,9 +10,10 @@ import { router as categoryRouter } from "./routes/category.route";
 import { router as clerkRouter } from "./routes/clerk.route";
 import { router as studioRouter } from "./routes/studio.route";
 import { router as videoRouter } from "./routes/video.route";
-// import { router as commentRouter } from "./routes/comment.route";
-// import { router as likeRouter } from "./routes/like.route";
-// import { router as subscribeRouter } from "./routes/subscribe.route";
+import { router as viewRouter } from "./routes/view.route";
+import { router as reactionRouter } from "./routes/reaction.route";
+import { router as subscribeRouter } from "./routes/subscribe.route";
+import { router as commentRouter } from "./routes/comment.route";
 // import { flushRedis } from "./utils/redis";
 import { clerkMiddleware } from "@clerk/express";
 import { db } from "./db/index";
@@ -32,9 +33,10 @@ app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/clerk", clerkRouter);
 app.use("/api/v1/studio", studioRouter);
 app.use("/api/v1/video", videoRouter);
-// app.use("/user/subscribe", subscribeRouter);
-// app.use("/comment", commentRouter);
-// app.use("/like", likeRouter);
+app.use("/api/v1/view", viewRouter);
+app.use("/api/v1/reaction", reactionRouter);
+app.use("/api/v1/subscription", subscribeRouter);
+app.use("/api/v1/comment", commentRouter);
 app.use(clerkMiddleware());
 
 app.get("/", async (req, res) => {
